@@ -80,3 +80,20 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+uint64
+freemem(void)
+{
+  struct run *r;
+  uint64 bytes = 0;
+
+  acquire(&kmem.lock); // Khóa spinlock an toàn
+  r = kmem.freelist;
+  while(r) {
+    bytes += PGSIZE;   // Mỗi page trống là 4096 bytes
+    r = r->next;
+  }
+  release(&kmem.lock); // Giải phóng spinlock
+
+  return bytes;
+}

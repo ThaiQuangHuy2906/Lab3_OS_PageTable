@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "ptree.h"
 
 struct cpu cpus[NCPU];
 
@@ -311,6 +312,8 @@ fork(void)
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
+
+  np->trace_mask = p->trace_mask;
 
   release(&np->lock);
 
@@ -692,4 +695,63 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+uint64
+nproc(void)
+{
+  struct proc *p;
+  uint64 count = 0;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state != UNUSED) { // Đếm tiến trình đang sử dụng
+      count++;
+    }
+    release(&p->lock);
+  }
+
+  return count;
+}
+
+int
+get_ptree(uint64 buf, int max)
+{
+  struct proc *p;
+  struct ptreeinfo info;
+  struct proc *my_p = myproc();
+  int count = 0;
+
+  // Duyệt bảng tiến trình
+  for(p = proc; p < &proc[NPROC] && count < max; p++) {
+    acquire(&p->lock);
+
+    if(p->state != UNUSED) {
+      // Lấy thông tin cơ bản
+      info.pid = p->pid;
+      info.state = p->state;
+      info.memsize = p->sz;
+      safestrcpy(info.name, p->name, sizeof(info.name));
+
+      // Lấy PID của cha một cách an toàn
+      if(p->parent) {
+        info.ppid = p->parent->pid;
+      } else {
+        info.ppid = 0; // init proc (pid 1) không có cha
+      }
+
+      release(&p->lock);
+
+      // Copy struct 'info' ra địa chỉ user (buf + offset)
+      // Mỗi lần copy xong dịch con trỏ lên đúng 1 khoảng sizeof(ptreeinfo)
+      if(copyout(my_p->pagetable, buf + count * sizeof(info), (char *)&info, sizeof(info)) < 0) {
+        return -1;
+      }
+      count++;
+    } else {
+      release(&p->lock); // Đừng quên nhả lock nếu tiến trình UNUSED
+    }
+  }
+
+  return count; // Trả về số lượng tiến trình thực tế đã copy
 }
