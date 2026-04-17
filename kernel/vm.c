@@ -450,15 +450,18 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
+// Hàm đệ quy để duyệt và in các cấp của bảng trang
 void
 _vmprint(pagetable_t pagetable, int level)
 {
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-    if(pte & PTE_V){ 
+    if(pte & PTE_V){ // Chỉ in nếu PTE hợp lệ
+      // In các dấu ".." tương ứng với độ sâu 
       for(int j = 0; j < level; j++) printf(".. ");
       printf("..%d: pte %p pa %p\n", i, (void*)pte, (void*)PTE2PA(pte));
 
+      // Nếu không phải là trang lá (leaf), tiếp tục đệ quy xuống cấp thấp hơn
       if((pte & (PTE_R|PTE_W|PTE_X)) == 0){
         uint64 child = PTE2PA(pte);
         _vmprint((pagetable_t)child, level + 1);
@@ -467,6 +470,7 @@ _vmprint(pagetable_t pagetable, int level)
   }
 }
 
+// Hàm chính được gọi để in bảng trang
 void
 vmprint(pagetable_t pagetable)
 {
