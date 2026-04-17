@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "kernel/sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -96,9 +97,55 @@ uint64
 sys_trace(void)
 {
   int mask;
-  
+
+  // Gọi argint trực tiếp, không đưa vào điều kiện if
   argint(0, &mask);
-  
-  myproc()->mask = mask;
-  return 0;
+
+  // Gán mask vào biến trace_mask của tiến trình hiện tại
+  myproc()->trace_mask = mask;
+
+  return 0; // Thành công
+}
+
+uint64
+sys_sysinfo(void)
+{
+  uint64 st_addr; // Biến chứa địa chỉ ảo từ user
+  struct sysinfo info;
+  struct proc *p = myproc();
+
+  // Gọi argaddr trực tiếp, không ép vào điều kiện if vì nó trả về void
+  argaddr(0, &st_addr);
+
+  // Bắt lỗi nếu user truyền con trỏ NULL
+  if(st_addr == 0)
+    return -1;
+
+  // Lấy dữ liệu hệ thống
+  info.freemem = freemem();
+  info.nproc = nproc();
+
+  // Copy dữ liệu từ kernel space ra user space an toàn
+  if(copyout(p->pagetable, st_addr, (char *)&info, sizeof(info)) < 0)
+    return -1;
+
+  return 0; // Thành công
+}
+
+uint64
+sys_ptree(void)
+{
+  uint64 buf;
+  int max;
+
+  // Lấy 2 tham số: argaddr cho con trỏ (buf), argint cho số nguyên (max)
+  argaddr(0, &buf);
+  argint(1, &max);
+
+  // Defensive Programming: Check con trỏ NULL và giới hạn max
+  if(buf == 0 || max <= 0)
+    return -1;
+
+  // Gọi hàm logic trong proc.c để xử lý
+  return get_ptree(buf, max);
 }

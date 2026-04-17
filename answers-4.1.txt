@@ -1,0 +1,19 @@
+Câu hỏi thêm (Lab 4.1):
+Những lệnh gọi hệ thống nào khác trong xv6 có thể được tăng tốc bằng trang chia sẻ?
+
+Trả lời:
+Theo em, trong các syscall có sẵn của xv6 thì ứng viên hợp lý nhất là uptime().
+Nếu giữ đúng phạm vi xv6 gốc, ngoài getpid() thì gần như chỉ uptime() là phù hợp rõ ràng.
+
+Lý do:
+- uptime() chỉ đọc biến đếm thời gian (ticks) và trả về số nguyên, không làm thay đổi trạng thái hệ thống.
+- Vì là dữ liệu nhỏ, chỉ đọc, nên có thể đặt vào vùng shared read-only giống cách làm với getpid(),
+  như vậy user đọc trực tiếp sẽ đỡ tốn chi phí trap vào kernel.
+
+Ngoài ra, nếu mở rộng thêm syscall dạng "chỉ đọc thông tin hệ thống" (ví dụ kiểu sysinfo),
+thì cũng có thể áp dụng cùng ý tưởng này.
+Nhưng đây là ví dụ mở rộng, không phải syscall mặc định trong bộ bài lab gốc.
+
+Còn các syscall như read/write/open/close/exec/fork/wait/sbrk... thì không phù hợp,
+vì chúng cần kernel xử lý logic, kiểm tra quyền, và/hoặc thay đổi trạng thái hệ thống,
+nên không thể thay bằng việc chỉ đọc dữ liệu từ một trang chia sẻ.

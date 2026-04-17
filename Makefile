@@ -197,10 +197,13 @@ UPROGS=\
 	$U/_diff\
 	$U/_pingpong\
 	$U/_primes\
+	$U/_sleeptest\
 	$U/_cp\
 	$U/_tree\
 	$U/_du\
 	$U/_trace\
+	$U/_sysinfotest\
+	$U/_pstree\
 
 ifeq ($(LAB),syscall)
 UPROGS += \
