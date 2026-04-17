@@ -194,9 +194,13 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-
-
-
+	$U/_diff\
+	$U/_pingpong\
+	$U/_primes\
+	$U/_cp\
+	$U/_tree\
+	$U/_du\
+	$U/_trace\
 
 ifeq ($(LAB),syscall)
 UPROGS += \
