@@ -149,3 +149,47 @@ sys_ptree(void)
   // Gọi hàm logic trong proc.c để xử lý
   return get_ptree(buf, max);
 }
+
+uint64
+sys_pgaccess(void)
+{
+  uint64 va;
+  int n;
+  uint64 abits_addr;
+
+  // Get arguments: virtual address, number of pages, pointer to bitmask
+  argaddr(0, &va);
+  argint(1, &n);
+  argaddr(2, &abits_addr);
+
+  // Limit to maximum 64 pages to avoid excessive scanning
+  if(n > 64)
+    n = 64;
+
+  struct proc *p = myproc();
+  unsigned int bitmask = 0;
+
+  // Scan each page and check if PTE_A bit is set
+  for(int i = 0; i < n; i++) {
+    pte_t *pte = walk(p->pagetable, va + i * PGSIZE, 0);
+    if(pte == 0) {
+      // Page not mapped, skip
+      continue;
+    }
+    if(*pte & PTE_V) {
+      // Check if accessed bit is set
+      if(*pte & PTE_A) {
+        // Set corresponding bit in bitmask
+        bitmask |= (1U << i);
+        // Clear the accessed bit
+        *pte &= ~PTE_A;
+      }
+    }
+  }
+
+  // Copy bitmask to user space
+  if(copyout(p->pagetable, abits_addr, (char *)&bitmask, sizeof(bitmask)) < 0)
+    return -1;
+
+  return 0;
+}

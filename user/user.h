@@ -22,6 +22,7 @@ int chdir(const char *);
 int dup(int);
 int getpid(void);
 int ugetpid(void);
+int pgaccess(void *, int, void *);
 char *sbrk(int);
 int sleep(int);
 int uptime(void);
